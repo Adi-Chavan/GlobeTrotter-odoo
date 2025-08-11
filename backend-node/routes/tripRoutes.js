@@ -1,7 +1,7 @@
 // routes/tripRoutes.js
 const express = require("express");
 const router = express.Router();
-const tripController = require("../controllers/tripController");
+const tripController = require("../controller/tripController");
 const { protect } = require("../middleware/authMiddleware"); 
 
 

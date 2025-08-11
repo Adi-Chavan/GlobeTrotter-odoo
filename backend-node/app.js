@@ -29,6 +29,8 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/trips", require("./routes/tripRoutes"));
+app.use("/api/budgets", require("./routes/budgetRoutes"));
+app.use("/api/activities", require("./routes/activityroutes"));
 
 app.get("/", (req, res) => {
     res.send("Welcome to the GlobeTrotter API");
