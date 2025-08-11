@@ -12,13 +12,13 @@ travel planning as exciting as the trip itself
 
 TECH STACK:
 
-Frontend: React + Vite
-Backend: Django (python)
-Database: PostgreSql (Relational)
+1.Frontend: React + Vite  
+2.Backend: Django (python)  
+3.Database: PostgreSql (Relational)  
 
 TEAM:
 
-Ayush Pathak (Leader)
-Mohit Choudhari
-Aditya Chavan
-Hutej Mane
+1.Ayush Pathak (Leader)  
+2.Mohit Choudhari  
+3.Aditya Chavan  
+4.Hutej Mane  
