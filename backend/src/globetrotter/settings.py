@@ -77,8 +77,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5134",
-    "http://127.0.0.1:5134",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 ROOT_URLCONF = "globetrotter.urls"
@@ -125,8 +125,8 @@ NINJA_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5134",
-    "http://127.0.0.1:5134",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 # Custom User Model
