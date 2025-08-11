@@ -470,6 +470,15 @@ const TripDetailPage = () => {
                   variant="secondary"
                   size="sm"
                   className="w-full justify-start"
+                  onClick={() => navigate(`/trips/${id}/itinerary`)}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  View Timeline
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-start"
                 >
                   <MapPinIcon className="h-4 w-4 mr-2" />
                   View on Map

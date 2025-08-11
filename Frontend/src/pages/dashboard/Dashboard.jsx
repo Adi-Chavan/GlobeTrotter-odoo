@@ -175,8 +175,7 @@ const Dashboard = () => {
               </p>
               <Link to="/trips/new">
                 <Button>
-                  <PlusIcon className="h-5 w-5 mr-2" />
-                  Create Your First Trip
+                  <span>Create Your First Trip</span>
                 </Button>
               </Link>
             </motion.div>
@@ -240,3 +239,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

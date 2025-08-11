@@ -11,6 +11,7 @@ import CreateTripPage from './pages/trips/CreateTripPage';
 import TripDetailPage from './pages/trips/TripDetailPage';
 import BudgetPage from './pages/trips/BudgetPage';
 import PublicTripView from './pages/trips/PublicTripView';
+import ItineraryPage from './pages/trips/ItineraryPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -98,6 +99,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <BudgetPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/trips/:id/itinerary" 
+          element={
+            <ProtectedRoute>
+              <ItineraryPage />
             </ProtectedRoute>
           } 
         />
