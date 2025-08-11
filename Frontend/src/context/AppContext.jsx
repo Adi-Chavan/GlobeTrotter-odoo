@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 
 // Initial state
 const initialState = {
@@ -199,7 +199,6 @@ function appReducer(state, action) {
         loading: false,
       };
     case actionTypes.LOGOUT:
-      localStorage.removeItem('token');
       return {
         ...state,
         user: null,
@@ -308,70 +307,51 @@ const AppContext = createContext();
 // Provider component
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [user, setUser] = useState(null);
 
-  // Check for existing auth token on mount
+  // Check for existing authentication on mount
   useEffect(() => {
-    const initializeApp = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        // In a real app, you'd validate the token with your backend
-        // For now, we'll just set a dummy user
-        dispatch({
-          type: actionTypes.SET_USER,
-          payload: {
-            id: 1,
-            name: 'John Doe',
-            email: 'john@example.com',
-            firstName: 'John',
-            lastName: 'Doe',
-            phone: '+1-555-0123',
-            country: 'United States',
-            additionalInfo: 'Travel enthusiast',
-          },
+    const tryRefresh = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
         });
-        
-        // Load data from API
-        try {
-          const { api } = await import('../services/api.js');
-          const trips = await api.getTrips();
-          dispatch({ type: actionTypes.SET_TRIPS, payload: trips });
-        } catch (error) {
-          console.warn('Failed to load trips from API, using fallback data:', error);
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          dispatch({ type: actionTypes.SET_USER, payload: data.user });
+          // Load initial data after successful auth
           dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
+          dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
+          dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
+          dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
         }
-        
-        // Load other mock data
-        dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
-        dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
-        dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
-      } else {
+      } catch (error) {
+        console.log('No existing session found');
+      } finally {
         dispatch({ type: actionTypes.SET_LOADING, payload: false });
       }
     };
-    
-    initializeApp();
+    tryRefresh();
   }, []);
 
   // Auth functions
   const login = async (email, password) => {
     try {
       dispatch({ type: actionTypes.SET_LOADING, payload: true });
-      
-      // Mock API call - replace with actual API
-      if (email && password) {
-        const user = {
-          id: 1,
-          name: 'John Doe',
-          email: email,
-          firstName: 'John',
-          lastName: 'Doe',
-          phone: '+1-555-0123',
-          country: 'United States',
-          additionalInfo: 'Travel enthusiast',
-        };
-        
-        localStorage.setItem('token', 'mock-jwt-token');
-        dispatch({ type: actionTypes.SET_USER, payload: user });
+      const res = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setUser(data.user);
+        dispatch({ type: actionTypes.SET_USER, payload: data.user });
         dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
         dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
         dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
@@ -379,45 +359,62 @@ export function AppProvider({ children }) {
         dispatch({ type: actionTypes.CLEAR_ERROR });
         return { success: true };
       } else {
-        throw new Error('Invalid credentials');
+        throw new Error(data.message || 'Login failed');
       }
     } catch (error) {
       dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
-      dispatch({ type: actionTypes.SET_LOADING, payload: false });
       return { success: false, error: error.message };
+    } finally {
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
     }
   };
 
   const signup = async (userData) => {
     try {
       dispatch({ type: actionTypes.SET_LOADING, payload: true });
-      
-      // Mock API call - replace with actual API
-      const user = {
-        id: Date.now(),
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
-        ...userData,
-      };
-      
-      localStorage.setItem('token', 'mock-jwt-token');
-      dispatch({ type: actionTypes.SET_USER, payload: user });
-      dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
-      dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
-      dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
-      dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
-      dispatch({ type: actionTypes.CLEAR_ERROR });
-      return { success: true };
+      const res = await fetch('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setUser(data.user);
+        dispatch({ type: actionTypes.SET_USER, payload: data.user });
+        dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
+        dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
+        dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
+        dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
+        dispatch({ type: actionTypes.CLEAR_ERROR });
+        return { success: true };
+      } else {
+        throw new Error(data.message || 'Registration failed');
+      }
     } catch (error) {
       dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
-      dispatch({ type: actionTypes.SET_LOADING, payload: false });
       return { success: false, error: error.message };
+    } finally {
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
     }
   };
 
-  const logout = () => {
-    dispatch({ type: actionTypes.LOGOUT });
+  const logout = async () => {
+    try {
+      await fetch('http://localhost:3000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      dispatch({ type: actionTypes.LOGOUT });
+    }
   };
+
 
   // Trip functions
   const createTrip = async (tripData) => {
@@ -586,6 +583,7 @@ export function AppProvider({ children }) {
 
   const contextValue = {
     ...state,
+    user,
     login,
     signup,
     logout,
@@ -615,7 +613,7 @@ export function AppProvider({ children }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
+    throw new Error('useAuth must be used within an AppProvider');
   }
   return context;
 }

@@ -9,7 +9,7 @@ import Navbar from '../../components/common/Navbar';
 
 const SignupPage = () => {
   const navigate = useNavigate();
-  const { signup, loading, error } = useApp();
+  const { signup, loading } = useApp();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -23,7 +23,10 @@ const SignupPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
   const [formErrors, setFormErrors] = useState({});
+
+
 
   const countries = [
     'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France', 
@@ -85,7 +88,7 @@ const SignupPage = () => {
     return errors;
   };
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     
     const errors = validateForm();
@@ -95,23 +98,18 @@ const SignupPage = () => {
     }
 
     try {
-      await signup({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        country: formData.country,
-        additionalInfo: formData.additionalInfo,
-        password: formData.password,
-        avatar: formData.avatar || null
-      });
-      navigate('/dashboard');
-    } catch (error) {
-      // Error is handled by context
-      console.error('Signup failed:', error);
+      setError('');
+      const result = await signup(formData);
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Registration failed');
+      }
+    } catch (err) {
+      console.error('Register error:', err);
+      setError('An error occurred during registration');
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -146,7 +144,7 @@ const SignupPage = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="bg-white py-8 px-4 shadow-lg rounded-lg sm:px-10"
           >
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleRegister}>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}

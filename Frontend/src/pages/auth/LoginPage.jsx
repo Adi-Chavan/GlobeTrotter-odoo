@@ -9,13 +9,14 @@ import Navbar from '../../components/common/Navbar';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, loading, error } = useApp();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const [formErrors, setFormErrors] = useState({});
+  const { login, loading } = useApp();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,7 +43,7 @@ const LoginPage = () => {
     return errors;
   };
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
     const errors = validateForm();
@@ -52,13 +53,19 @@ const LoginPage = () => {
     }
 
     try {
-      await login(formData.email, formData.password);
-      navigate('/dashboard');
-    } catch (error) {
-      // Error is handled by context
-      console.error('Login failed:', error);
+      setError('');
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred during login');
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -94,7 +101,7 @@ const LoginPage = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="bg-white py-8 px-4 shadow-lg rounded-lg sm:px-10"
           >
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleLogin}>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
