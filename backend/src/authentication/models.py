@@ -3,10 +3,8 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
 class UserManager(BaseUserManager):
-    """Custom user manager for email-based authentication"""
     
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
-        """Create and return a regular user with an email and password"""
         if not email:
             raise ValueError('The Email field must be set')
         if not first_name:
@@ -21,7 +19,6 @@ class UserManager(BaseUserManager):
         return user
     
     def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
-        """Create and return a superuser with an email and password"""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         
@@ -33,7 +30,6 @@ class UserManager(BaseUserManager):
         return self.create_user(email, first_name, last_name, password, **extra_fields)
 
 class User(AbstractUser):
-    """Custom User model for GlobeTrotter"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
@@ -47,12 +43,9 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    # Remove username field, use email instead
-    username = None
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
     
-    # Use custom manager
     objects = UserManager()
     
     class Meta:

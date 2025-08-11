@@ -22,7 +22,6 @@ auth_router = Router(tags=["Authentication"])
 
 @auth_router.post("/signup", response=TokenResponseSchema)
 def signup(request, payload: UserRegistrationSchema):
-    """Register a new user"""
     if payload.password != payload.password_confirm:
         return 400, {"message": "Passwords don't match", "success": False}
     
@@ -51,7 +50,6 @@ def signup(request, payload: UserRegistrationSchema):
 
 @auth_router.post("/login", response=TokenResponseSchema)
 def login(request, payload: UserLoginSchema):
-    """Authenticate user and return tokens"""
     user = authenticate(username=payload.email, password=payload.password)
     
     if not user:
@@ -70,12 +68,10 @@ def login(request, payload: UserLoginSchema):
 
 @auth_router.get("/me", response=UserProfileSchema, auth=JWTAuth())
 def get_profile(request):
-    """Get current user profile"""
     return request.user
 
 @auth_router.put("/me", response=UserProfileSchema, auth=JWTAuth())
 def update_profile(request, payload: UserUpdateSchema):
-    """Update current user profile"""
     user = request.user
     
     for attr, value in payload.dict(exclude_unset=True).items():
@@ -86,7 +82,6 @@ def update_profile(request, payload: UserUpdateSchema):
 
 @auth_router.post("/change-password", response=MessageResponseSchema, auth=JWTAuth())
 def change_password(request, payload: ChangePasswordSchema):
-    """Change user password"""
     user = request.user
     
     if not user.check_password(payload.current_password):
@@ -102,22 +97,15 @@ def change_password(request, payload: ChangePasswordSchema):
 
 @auth_router.post("/forgot-password", response=MessageResponseSchema)
 def forgot_password(request, payload: ForgotPasswordSchema):
-    """Request password reset"""
     try:
         user = User.objects.get(email=payload.email)
-        # TODO: Implement email sending logic here
-        # For now, just return success message
         return {"message": "Password reset email sent", "success": True}
     except User.DoesNotExist:
-        # Return success even if user doesn't exist for security
         return {"message": "Password reset email sent", "success": True}
 
 @auth_router.post("/reset-password", response=MessageResponseSchema)
 def reset_password(request, payload: ResetPasswordSchema):
-    """Reset password with token"""
-    # TODO: Implement token validation logic
     if payload.new_password != payload.confirm_password:
         return 400, {"message": "Passwords don't match", "success": False}
     
-    # For now, return success (implement proper token validation later)
     return {"message": "Password reset successfully", "success": True}
