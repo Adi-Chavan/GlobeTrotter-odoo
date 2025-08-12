@@ -42,9 +42,14 @@ exports.createCity = async (req, res) => {
     const { name, country, description } = req.body;
 
     // Check if city already exists
-    const existingCity = await City.findOne({ name, country });
+    const existingCity = await City.findOne({ 
+      name: { $regex: new RegExp('^' + name + '$', 'i') }, 
+      country: { $regex: new RegExp('^' + country + '$', 'i') }
+    });
+    
     if (existingCity) {
-      return res.status(400).json({ message: "City already exists in this country" });
+      // Return existing city instead of error
+      return res.status(200).json(existingCity);
     }
 
     const city = await City.create({

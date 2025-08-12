@@ -100,7 +100,7 @@ const ActivityCard = ({
             <Button
               variant="danger"
               size="sm"
-              onClick={() => onDelete(activity.id)}
+              onClick={() => onDelete(activity.id || activity._id)}
               className="text-xs"
             >
               Delete

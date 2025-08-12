@@ -3,19 +3,18 @@ const router = express.Router();
 const budgetController = require("../controller/budgetController");
 const { protect } = require("../middleware/authMiddleware");
 
-// GET all budgets
+// Trip-specific expense routes
+router.get("/:tripId/expenses", protect, budgetController.getExpenses);
+router.post("/:tripId/expenses", protect, budgetController.addExpense);
+router.put("/:tripId/expenses/:expenseId", protect, budgetController.updateExpense);
+router.delete("/:tripId/expenses/:expenseId", protect, budgetController.deleteExpense);
+router.get("/:tripId/summary", protect, budgetController.getBudgetSummary);
+
+// Original budget routes (for backward compatibility)
 router.get("/", protect, budgetController.getBudgets);
-
-// GET budget by ID
 router.get("/:id", protect, budgetController.getBudgetById);
-
-// CREATE budget
 router.post("/", protect, budgetController.createBudget);
-
-// UPDATE budget
 router.put("/:id", protect, budgetController.updateBudget);
-
-// DELETE budget
 router.delete("/:id", protect, budgetController.deleteBudget);
 
 module.exports = router;

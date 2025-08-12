@@ -84,7 +84,7 @@ const StopCard = ({
               <Button
                 variant="danger"
                 size="sm"
-                onClick={() => onDeleteStop(stop.id)}
+                onClick={() => onDeleteStop(stop.id || stop._id)}
               >
                 Delete
               </Button>
@@ -109,7 +109,7 @@ const StopCard = ({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => onAddActivity(stop.id)}
+                  onClick={() => onAddActivity(stop.id || stop._id)}
                   className="flex items-center space-x-2"
                 >
                   <PlusIcon className="h-4 w-4" />

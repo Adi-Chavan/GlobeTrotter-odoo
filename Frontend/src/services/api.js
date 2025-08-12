@@ -1,329 +1,196 @@
-// Mock API service with sample data
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// Real API service for GlobeTrotter backend
+const API_BASE_URL = 'http://localhost:3000/api';
 
-// Sample data - Standardized format matching AppContext
-const sampleTrips = [
-  {
-    id: 1,
-    name: 'European Adventure',
-    description: 'A magical journey through historic Europe',
-    destination: 'Paris, Rome, Barcelona',
-    coverImage: 'https://images.pexels.com/photos/1020016/pexels-photo-1020016.jpeg?auto=compress&cs=tinysrgb&w=800',
-    image: 'https://images.pexels.com/photos/1020016/pexels-photo-1020016.jpeg?auto=compress&cs=tinysrgb&w=800',
-    startDate: '2025-09-15',
-    endDate: '2025-09-25',
-    status: 'upcoming',
-    budget: 3000,
-    totalBudget: 3000,
-    isPublic: true,
-    userId: 'user1',
-    destinations: ['Paris', 'Rome', 'Barcelona'],
-    createdAt: '2024-01-15T10:30:00Z',
-    itinerary: [
-      {
-        day: 1,
-        location: 'Paris',
-        activities: ['Visit Eiffel Tower', 'Seine River Cruise'],
-        budget: 150,
-        weather: { temp: 22, condition: 'Sunny' }
-      },
-      {
-        day: 2,
-        location: 'Paris',
-        activities: ['Louvre Museum', 'Montmartre District'],
-        budget: 120,
-        weather: { temp: 20, condition: 'Cloudy' }
-      }
-    ],
-    stops: [
-      {
-        id: 1001,
-        cityName: 'Paris',
-        country: 'France',
-        startDate: '2025-09-15',
-        endDate: '2025-09-18',
-        estimatedCost: 1200,
-        activities: [
-          { id: 1001001, name: 'Eiffel Tower Visit', category: 'Sightseeing', cost: 30, date: '2025-09-16', duration: 2 },
-          { id: 1001002, name: 'Louvre Museum', category: 'Culture', cost: 25, date: '2025-09-17', duration: 4 }
-        ]
-      },
-      {
-        id: 1002,
-        cityName: 'Rome',
-        country: 'Italy',
-        startDate: '2025-09-19',
-        endDate: '2025-09-22',
-        estimatedCost: 1100,
-        activities: [
-          { id: 1002001, name: 'Colosseum Tour', category: 'Sightseeing', cost: 45, date: '2025-09-20', duration: 3 },
-          { id: 1002002, name: 'Vatican Museums', category: 'Culture', cost: 35, date: '2025-09-21', duration: 5 }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Tokyo Discovery',
-    description: 'Exploring the wonders of Asia',
-    destination: 'Tokyo, Japan',
-    coverImage: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=800',
-    image: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=800',
-    startDate: '2025-08-20',
-    endDate: '2025-08-30',
-    status: 'ongoing',
-    budget: 2500,
-    totalBudget: 2500,
-    isPublic: true,
-    userId: 'user1',
-    destinations: ['Tokyo', 'Seoul', 'Bangkok'],
-    createdAt: '2024-01-10T08:15:00Z',
-    itinerary: [],
-    stops: []
-  },
-  {
-    id: 3,
-    name: 'Bali Retreat',
-    description: 'Peaceful retreat in paradise',
-    destination: 'Bali, Indonesia',
-    coverImage: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=500',
-    image: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=500',
-    startDate: '2025-07-01',
-    endDate: '2025-07-10',
-    status: 'completed',
-    budget: 1800,
-    totalBudget: 1800,
-    isPublic: true,
-    userId: 'user1',
-    destinations: ['Bali'],
-    createdAt: '2024-01-05T14:20:00Z',
-    itinerary: [],
-    stops: []
+// Helper function to handle API responses
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
   }
-];
-
-const sampleUser = {
-  id: 'user1',
-  name: 'John Doe',
-  email: 'john@example.com',
-  avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400'
+  return response.json();
 };
 
-const sampleExpenses = [
-  { id: '1', tripId: '1', type: 'Accommodation', amount: 800, date: '2024-06-01' },
-  { id: '2', tripId: '1', type: 'Food', amount: 450, date: '2024-06-02' },
-  { id: '3', tripId: '1', type: 'Transportation', amount: 320, date: '2024-06-01' },
-  { id: '4', tripId: '1', type: 'Activities', amount: 180, date: '2024-06-03' }
-];
+// Helper function to make authenticated requests
+const makeRequest = async (url, options = {}) => {
+  const config = {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  const response = await fetch(`${API_BASE_URL}${url}`, config);
+  return handleResponse(response);
+};
 
 // API functions
 export const api = {
   // Auth
   async login(email, password) {
-    await delay(1000);
-    if (email === 'john@example.com' && password === 'password') {
-      return { success: true, user: sampleUser, token: 'mock-jwt-token' };
-    }
-    throw new Error('Invalid credentials');
+    return makeRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
   },
 
   async signup(userData) {
-    await delay(1000);
-    return { 
-      success: true, 
-      user: { ...sampleUser, ...userData, id: 'new-user-id' }, 
-      token: 'mock-jwt-token' 
-    };
+    return makeRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
   },
 
   async logout() {
-    await delay(500);
-    return { success: true };
+    return makeRequest('/auth/logout', {
+      method: 'POST',
+    });
+  },
+
+  async getCurrentUser() {
+    return makeRequest('/auth/me');
   },
 
   // Trips
   async getTrips() {
-    await delay(800);
-    console.log('API getTrips called, returning:', sampleTrips.map(t => ({ id: t.id, name: t.name })));
-    return sampleTrips;
+    console.log('API getTrips called - fetching from backend');
+    return makeRequest('/trips');
   },
 
   async getPublicTrips() {
-    await delay(800);
-    return sampleTrips.filter(trip => trip.isPublic);
+    return makeRequest('/trips/public');
   },
 
   async getTripById(id) {
-    await delay(600);
-    // Convert string ID to number if needed
-    const tripId = typeof id === 'string' ? parseInt(id, 10) : id;
-    const trip = sampleTrips.find(trip => trip.id === tripId);
-    if (!trip) {
-      console.warn(`Trip with ID ${id} (converted to ${tripId}) not found in:`, sampleTrips.map(t => t.id));
-      throw new Error('Trip not found');
-    }
-    return trip;
+    console.log('API getTripById called with ID:', id);
+    return makeRequest(`/trips/${id}`);
   },
 
   async createTrip(tripData) {
-    await delay(1000);
-    const newTrip = {
-      id: Date.now(), // Use numeric timestamp ID
-      ...tripData,
-      userId: sampleUser.id,
-      destinations: tripData.destinations || [],
-      stops: [],
-      totalBudget: tripData.budget || 0,
-      budget: tripData.budget || 0,
-      status: 'upcoming',
-      createdAt: new Date().toISOString(),
-      itinerary: [],
-      // Ensure both image and coverImage fields are set
-      image: tripData.coverImage || tripData.image,
-      coverImage: tripData.coverImage || tripData.image
-    };
-    sampleTrips.push(newTrip);
-    console.log('Created new trip:', newTrip);
-    console.log('All trips now:', sampleTrips.map(t => ({ id: t.id, name: t.name })));
-    return newTrip;
+    console.log('API createTrip called with data:', tripData);
+    return makeRequest('/trips', {
+      method: 'POST',
+      body: JSON.stringify(tripData),
+    });
   },
 
   async updateTrip(id, updates) {
-    await delay(800);
-    const tripIndex = sampleTrips.findIndex(trip => trip.id === id);
-    if (tripIndex === -1) throw new Error('Trip not found');
-    sampleTrips[tripIndex] = { ...sampleTrips[tripIndex], ...updates };
-    return sampleTrips[tripIndex];
+    return makeRequest(`/trips/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
   },
 
   async deleteTrip(id) {
-    await delay(600);
-    const tripIndex = sampleTrips.findIndex(trip => trip.id === id);
-    if (tripIndex === -1) throw new Error('Trip not found');
-    sampleTrips.splice(tripIndex, 1);
-    return { success: true };
+    return makeRequest(`/trips/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Sharing functionality
+  async generateShareLink(id) {
+    console.log('API generateShareLink called with ID:', id);
+    return makeRequest(`/trips/${id}/share`, {
+      method: 'POST',
+    });
+  },
+
+  async getSharedTrip(shareId) {
+    console.log('API getSharedTrip called with shareId:', shareId);
+    return makeRequest(`/trips/shared/${shareId}`);
+  },
+
+  async toggleTripVisibility(id, isPublic) {
+    return makeRequest(`/trips/${id}/visibility`, {
+      method: 'PUT',
+      body: JSON.stringify({ isPublic }),
+    });
   },
 
   // Stops
   async addStop(tripId, stopData) {
-    await delay(600);
-    // Convert string ID to number if needed
-    const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
-    const trip = sampleTrips.find(t => t.id === numericTripId);
-    if (!trip) {
-      console.warn(`Trip with ID ${tripId} (converted to ${numericTripId}) not found in:`, sampleTrips.map(t => t.id));
-      throw new Error('Trip not found');
-    }
-    const newStop = {
-      id: Date.now(), // Use numeric ID
-      ...stopData,
-      activities: []
-    };
-    trip.stops.push(newStop);
-    console.log('Added stop to trip:', { tripId: numericTripId, stop: newStop });
-    return newStop;
+    console.log('API addStop called:', { tripId, stopData });
+    return makeRequest('/stops', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...stopData,
+        trip: tripId
+      }),
+    });
   },
 
   async updateStop(tripId, stopId, updates) {
-    await delay(500);
-    const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
-    const numericStopId = typeof stopId === 'string' ? parseInt(stopId, 10) : stopId;
-    const trip = sampleTrips.find(t => t.id === numericTripId);
-    if (!trip) throw new Error('Trip not found');
-    const stopIndex = trip.stops.findIndex(s => s.id === numericStopId);
-    if (stopIndex === -1) throw new Error('Stop not found');
-    trip.stops[stopIndex] = { ...trip.stops[stopIndex], ...updates };
-    return trip.stops[stopIndex];
+    return makeRequest(`/stops/${stopId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...updates,
+        trip: tripId
+      }),
+    });
   },
 
   async deleteStop(tripId, stopId) {
-    await delay(500);
-    const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
-    const numericStopId = typeof stopId === 'string' ? parseInt(stopId, 10) : stopId;
-    const trip = sampleTrips.find(t => t.id === numericTripId);
-    if (!trip) throw new Error('Trip not found');
-    trip.stops = trip.stops.filter(s => s.id !== numericStopId);
-    return { success: true };
+    return makeRequest(`/stops/${stopId}`, {
+      method: 'DELETE',
+    });
   },
 
   // Activities
   async addActivity(tripId, stopId, activityData) {
-    await delay(500);
-    const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
-    const numericStopId = typeof stopId === 'string' ? parseInt(stopId, 10) : stopId;
-    const trip = sampleTrips.find(t => t.id === numericTripId);
-    if (!trip) throw new Error('Trip not found');
-    const stop = trip.stops.find(s => s.id === numericStopId);
-    if (!stop) throw new Error('Stop not found');
-    const newActivity = {
-      id: Date.now(), // Use numeric ID
-      ...activityData
-    };
-    stop.activities.push(newActivity);
-    console.log('Added activity to stop:', { tripId: numericTripId, stopId: numericStopId, activity: newActivity });
-    return newActivity;
+    console.log('API addActivity called:', { tripId, stopId, activityData });
+    return makeRequest('/activities', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...activityData,
+        stop: stopId
+      }),
+    });
   },
 
   async updateActivity(tripId, stopId, activityId, updates) {
-    await delay(400);
-    const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
-    const numericStopId = typeof stopId === 'string' ? parseInt(stopId, 10) : stopId;
-    const numericActivityId = typeof activityId === 'string' ? parseInt(activityId, 10) : activityId;
-    const trip = sampleTrips.find(t => t.id === numericTripId);
-    if (!trip) throw new Error('Trip not found');
-    const stop = trip.stops.find(s => s.id === numericStopId);
-    if (!stop) throw new Error('Stop not found');
-    const activityIndex = stop.activities.findIndex(a => a.id === numericActivityId);
-    if (activityIndex === -1) throw new Error('Activity not found');
-    stop.activities[activityIndex] = { ...stop.activities[activityIndex], ...updates };
-    return stop.activities[activityIndex];
+    return makeRequest(`/activities/${activityId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...updates,
+        stop: stopId
+      }),
+    });
   },
 
   async deleteActivity(tripId, stopId, activityId) {
-    await delay(400);
-    const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
-    const numericStopId = typeof stopId === 'string' ? parseInt(stopId, 10) : stopId;
-    const numericActivityId = typeof activityId === 'string' ? parseInt(activityId, 10) : activityId;
-    const trip = sampleTrips.find(t => t.id === numericTripId);
-    if (!trip) throw new Error('Trip not found');
-    const stop = trip.stops.find(s => s.id === numericStopId);
-    if (!stop) throw new Error('Stop not found');
-    stop.activities = stop.activities.filter(a => a.id !== numericActivityId);
-    return { success: true };
+    return makeRequest(`/activities/${activityId}`, {
+      method: 'DELETE',
+    });
   },
 
-  // Expenses
-  async getExpenses(tripId) {
-    await delay(600);
-    return sampleExpenses.filter(expense => expense.tripId === tripId);
+  // Cities
+  async searchCities(searchTerm, country = null) {
+    const params = new URLSearchParams({ search: searchTerm });
+    if (country) params.append('country', country);
+    return makeRequest(`/cities?${params}`);
   },
 
-  async addExpense(tripId, expenseData) {
-    await delay(500);
-    const newExpense = {
-      id: Date.now().toString(),
-      tripId,
-      ...expenseData
-    };
-    sampleExpenses.push(newExpense);
-    return newExpense;
+  async createCity(cityData) {
+    return makeRequest('/cities', {
+      method: 'POST',
+      body: JSON.stringify(cityData),
+    });
   },
 
   // Profile
   async updateProfile(userData) {
-    await delay(800);
-    Object.assign(sampleUser, userData);
-    return sampleUser;
+    return makeRequest('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
   },
 
-  async getCurrentUser() {
-    await delay(300);
-    return sampleUser;
-  },
-
-  // Recommendations
+  // Mock Recommendations (until we implement real recommendation service)
   async getWeatherRecommendations(destination, startDate, endDate) {
-    await delay(600);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
     return {
       temperature: Math.floor(Math.random() * 15) + 15,
       condition: ['Sunny', 'Partly Cloudy', 'Rainy', 'Clear', 'Cloudy'][Math.floor(Math.random() * 5)],
@@ -361,7 +228,9 @@ export const api = {
   },
 
   async getHotelRecommendations(destination) {
-    await delay(800);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
     const hotelTypes = ['Grand Hotel', 'Resort', 'Boutique Hotel', 'Business Hotel', 'Budget Inn'];
     const amenities = [
       ['WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym'],
@@ -383,7 +252,9 @@ export const api = {
   },
 
   async getTransportRecommendations(destination) {
-    await delay(600);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
     return [
       {
         id: 1,
@@ -425,7 +296,9 @@ export const api = {
   },
 
   async getActivityRecommendations(destination) {
-    await delay(700);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 700));
+    
     const categories = ['Sightseeing', 'Culture', 'Food & Drink', 'Adventure', 'Entertainment', 'Shopping'];
     const activities = [
       'Walking Tour', 'Museum Visit', 'Food Experience', 'Adventure Park', 'Live Show', 'Market Tour',
@@ -469,5 +342,39 @@ export const api = {
       'Market Tour': ['Local products', 'Food sampling', 'Cultural exchange', 'Shopping opportunities']
     };
     return highlights[activity] || ['Unique experience', 'Expert guidance', 'Cultural insights', 'Memorable moments'];
+  },
+
+  // Budget and Expenses
+  async getExpenses(tripId) {
+    console.log('API getExpenses called with tripId:', tripId);
+    return makeRequest(`/budget/${tripId}/expenses`);
+  },
+
+  async addExpense(tripId, expenseData) {
+    console.log('API addExpense called with tripId:', tripId, 'data:', expenseData);
+    return makeRequest(`/budget/${tripId}/expenses`, {
+      method: 'POST',
+      body: JSON.stringify(expenseData),
+    });
+  },
+
+  async updateExpense(tripId, expenseId, updates) {
+    console.log('API updateExpense called with tripId:', tripId, 'expenseId:', expenseId);
+    return makeRequest(`/budget/${tripId}/expenses/${expenseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async deleteExpense(tripId, expenseId) {
+    console.log('API deleteExpense called with tripId:', tripId, 'expenseId:', expenseId);
+    return makeRequest(`/budget/${tripId}/expenses/${expenseId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getBudgetSummary(tripId) {
+    console.log('API getBudgetSummary called with tripId:', tripId);
+    return makeRequest(`/budget/${tripId}/summary`);
   }
 };

@@ -48,6 +48,12 @@ exports.createStop = async (req, res) => {
   try {
     const { trip, city, arrivalDate, departureDate, activities } = req.body;
 
+    // Verify that the trip belongs to the current user
+    const tripDoc = await Trip.findOne({ _id: trip, user: req.user._id });
+    if (!tripDoc) {
+      return res.status(404).json({ message: "Trip not found or access denied" });
+    }
+
     const stop = await Stop.create({
       trip,
       city,
@@ -56,12 +62,35 @@ exports.createStop = async (req, res) => {
       activities: activities || []
     });
 
+    // Add stop to trip's stops array
+    await Trip.findByIdAndUpdate(trip, {
+      $push: { stops: stop._id }
+    });
+
     const populatedStop = await Stop.findById(stop._id)
       .populate("trip", "name")
       .populate("city", "name country")
       .populate("activities");
 
-    res.status(201).json(populatedStop);
+    // Transform data to match frontend expectations
+    const transformedStop = {
+      ...populatedStop.toObject(),
+      id: populatedStop._id,
+      cityName: populatedStop.city?.name || 'Unknown City',
+      country: populatedStop.city?.country || 'Unknown Country',
+      startDate: populatedStop.arrivalDate,
+      endDate: populatedStop.departureDate,
+      activities: populatedStop.activities?.map(activity => ({
+        ...activity.toObject(),
+        id: activity._id,
+        date: activity.startTime,
+        duration: activity.endTime && activity.startTime ? 
+          Math.round((new Date(activity.endTime) - new Date(activity.startTime)) / (1000 * 60 * 60) * 10) / 10 : null,
+        category: activity.category || 'Other'
+      })) || []
+    };
+
+    res.status(201).json(transformedStop);
   } catch (err) {
     console.error("Error creating stop:", err);
     res.status(500).json({ message: "Server error creating stop" });

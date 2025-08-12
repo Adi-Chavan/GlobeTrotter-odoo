@@ -31,7 +31,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/trips", require("./routes/tripRoutes"));
 app.use("/api/stops", require("./routes/stopRoutes"));
 app.use("/api/cities", require("./routes/cityRoutes"));
-app.use("/api/budgets", require("./routes/budgetRoutes"));
+app.use("/api/budget", require("./routes/budgetRoutes"));
 app.use("/api/activities", require("./routes/activityroutes"));
 app.use("/api/hotels", require("./routes/hotelRoutes"));
 app.use("/api/community", require("./routes/communityRoutes"));

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppProvider, useApp } from './context/AppContext';
@@ -14,15 +14,16 @@ import TripListingPage from './pages/trips/TripListingPage';
 import BuildItineraryPage from './pages/trips/BuildItineraryPage';
 import ItineraryViewPage from './pages/trips/ItineraryViewPage';
 import ActivitySearchPage from './pages/trips/ActivitySearchPage';
+import SharedTripPage from './pages/trips/SharedTripPage';
 import CommunityPage from './pages/CommunityPage';
 import CalendarViewPage from './pages/CalendarViewPage';
 import AdminPanelPage from './pages/AdminPanelPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
-
 // Components
 import NotificationContainer from './components/common/NotificationContainer';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import BudgetPage from './pages/trips/BudgetPage';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -123,6 +124,22 @@ function AppRoutes() {
             } 
           />
 
+          {/* Shared Trip Route - Public Route */}
+          <Route 
+            path="/shared/:shareId" 
+            element={
+              <motion.div
+                initial="initial"
+                animate="in"
+                exit="out"
+                variants={pageVariants}
+                transition={pageTransition}
+              >
+                <SharedTripPage />
+              </motion.div>
+            } 
+          />
+
           {/* Protected Routes */}
           <Route 
             path="/dashboard" 
@@ -216,6 +233,22 @@ function AppRoutes() {
                   transition={pageTransition}
                 >
                   <ItineraryViewPage />
+                </motion.div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/trips/:id/budget" 
+            element={
+              <ProtectedRoute>
+                <motion.div
+                  initial="initial"
+                  animate="in"
+                  exit="out"
+                  variants={pageVariants}
+                  transition={pageTransition}
+                >
+                  <BudgetPage />
                 </motion.div>
               </ProtectedRoute>
             } 
@@ -326,6 +359,47 @@ function AppRoutes() {
 }
 
 function App() {
+  // Initialize Landbot chatbot
+  useEffect(() => {
+    let myLandbot;
+    
+    function initLandbot() {
+      if (!myLandbot) {
+        const script = document.createElement('script');
+        script.type = "module";
+        script.async = true;
+        script.addEventListener('load', function() {
+          if (window.Landbot) {
+            myLandbot = new window.Landbot.Livechat({
+              configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3089084-829PBXWULI36VTYY/index.json',
+            });
+          }
+        });
+        script.src = 'https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs';
+        
+        const firstScript = document.getElementsByTagName('script')[0];
+        if (firstScript && firstScript.parentNode) {
+          firstScript.parentNode.insertBefore(script, firstScript);
+        } else {
+          document.head.appendChild(script);
+        }
+      }
+    }
+
+    // Add event listeners for lazy loading
+    const handleMouseOver = () => initLandbot();
+    const handleTouchStart = () => initLandbot();
+
+    window.addEventListener('mouseover', handleMouseOver, { once: true });
+    window.addEventListener('touchstart', handleTouchStart, { once: true });
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('mouseover', handleMouseOver);
+      window.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
+
   return (
     <AppProvider>
       <div className="min-h-screen bg-gray-50 overflow-x-hidden">

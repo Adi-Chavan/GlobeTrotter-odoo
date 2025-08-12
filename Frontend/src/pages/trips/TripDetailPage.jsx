@@ -25,10 +25,12 @@ import {
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import StopCard from '../../components/trip/StopCard';
+import ShareModal from '../../components/trip/ShareModal';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import FormInput from '../../components/common/FormInput';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import BudgetPage from './BudgetPage';
 import Navbar from '../../components/common/Navbar';
 import { format } from 'date-fns';
 
@@ -47,6 +49,7 @@ const TripDetailPage = () => {
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [showEditActivityModal, setShowEditActivityModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Form states
   const [stopFormData, setStopFormData] = useState({
@@ -186,59 +189,28 @@ const TripDetailPage = () => {
     try {
       console.log('Adding stop:', stopFormData);
       
-      // First, create or find the city
-      const cityRes = await fetch('http://localhost:3000/api/cities', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Create or find the city using the API service
+      let city;
+      try {
+        city = await api.createCity({
           name: stopFormData.cityName.trim(),
           country: stopFormData.country.trim()
-        }),
-      });
-
-      let city;
-      if (cityRes.ok) {
-        city = await cityRes.json();
-      } else {
-        // City might already exist, try to find it
-        const searchRes = await fetch(`http://localhost:3000/api/cities?search=${encodeURIComponent(stopFormData.cityName)}&country=${encodeURIComponent(stopFormData.country)}`, {
-          method: 'GET',
-          credentials: 'include',
         });
-        if (searchRes.ok) {
-          const cities = await searchRes.json();
-          city = cities.find(c => c.name.toLowerCase() === stopFormData.cityName.toLowerCase() && 
-                                  c.country.toLowerCase() === stopFormData.country.toLowerCase());
-        }
-        
-        if (!city) {
-          throw new Error('Could not create or find city');
-        }
+      } catch (error) {
+        console.error('Failed to create/find city:', error);
+        alert('Failed to create or find city. Please try again.');
+        return;
       }
 
-      // Now create the stop
+      // Now create the stop using the API service
       const stopData = {
-        trip: id,
         city: city._id,
         arrivalDate: stopFormData.startDate,
         departureDate: stopFormData.endDate,
         activities: []
       };
 
-      const res = await fetch('http://localhost:3000/api/stops', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stopData),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to create stop');
-      }
-
-      const newStop = await res.json();
+      const newStop = await api.addStop(id, stopData);
       console.log('Stop added successfully:', newStop);
       
       setTrip(prev => ({
@@ -256,8 +228,25 @@ const TripDetailPage = () => {
   const handleEditStop = async () => {
     try {
       console.log('Editing stop:', currentStop.id, stopFormData);
-      const updatedStop = await api.updateStop(id, currentStop.id, stopFormData);
+      
+      // Create or find the city if changed
+      let city;
+      if (stopFormData.cityName !== currentStop.cityName || stopFormData.country !== currentStop.country) {
+        city = await api.createCity({
+          name: stopFormData.cityName.trim(),
+          country: stopFormData.country.trim()
+        });
+      }
+
+      const updates = {
+        arrivalDate: stopFormData.startDate,
+        departureDate: stopFormData.endDate,
+        ...(city && { city: city._id })
+      };
+
+      const updatedStop = await api.updateStop(id, currentStop.id, updates);
       console.log('Stop updated successfully:', updatedStop);
+      
       setTrip(prev => ({
         ...prev,
         stops: (prev.stops || []).map(stop => 
@@ -292,36 +281,24 @@ const TripDetailPage = () => {
       console.log('Adding activity:', currentStopId, activityFormData);
       
       const activityData = {
-        stop: currentStopId,
         name: activityFormData.name,
         description: activityFormData.description || '',
+        category: activityFormData.category || 'Other',
         startTime: activityFormData.date && activityFormData.time ? 
           new Date(`${activityFormData.date}T${activityFormData.time}`) : null,
         endTime: activityFormData.date && activityFormData.time && activityFormData.duration ?
           new Date(new Date(`${activityFormData.date}T${activityFormData.time}`).getTime() + 
-                  parseInt(activityFormData.duration) * 60000) : null,
+                  parseFloat(activityFormData.duration) * 60 * 60 * 1000) : null,
         cost: parseFloat(activityFormData.cost) || 0
       };
 
-      const res = await fetch('http://localhost:3000/api/activities', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(activityData),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to create activity');
-      }
-
-      const newActivity = await res.json();
+      const newActivity = await api.addActivity(id, currentStopId, activityData);
       console.log('Activity added successfully:', newActivity);
       
       setTrip(prev => ({
         ...prev,
         stops: (prev.stops || []).map(stop =>
-          stop._id === currentStopId
+          stop.id === currentStopId || stop._id === currentStopId
             ? { ...stop, activities: [...(stop.activities || []), newActivity] }
             : stop
         )
@@ -411,6 +388,66 @@ const TripDetailPage = () => {
     setCurrentStopId(null);
   };
 
+  // Handle adding recommended activity to itinerary
+  const handleAddRecommendedActivity = async (recommendedActivity) => {
+    try {
+      // Check if trip has stops
+      if (!trip.stops || trip.stops.length === 0) {
+        alert('Please create at least one stop first before adding activities to your itinerary.');
+        setActiveTab('itinerary');
+        return;
+      }
+
+      // For now, add to the first stop. In the future, we could show a modal to select which stop
+      const firstStop = trip.stops[0];
+      const stopId = firstStop.id || firstStop._id;
+
+      // Create proper dates for startTime and endTime
+      const now = new Date();
+      const startTime = now.toISOString();
+      const durationHours = typeof recommendedActivity.duration === 'string' 
+        ? parseFloat(recommendedActivity.duration.replace(/[^\d.]/g, '')) || 2
+        : recommendedActivity.duration || 2;
+      const endTime = new Date(now.getTime() + durationHours * 60 * 60 * 1000).toISOString();
+
+      const activityData = {
+        name: recommendedActivity.name,
+        description: recommendedActivity.description || '',
+        category: recommendedActivity.category || 'Sightseeing',
+        cost: typeof recommendedActivity.price === 'string' 
+          ? parseFloat(recommendedActivity.price.replace(/[^\d.]/g, '')) || 0
+          : recommendedActivity.price || 0,
+        startTime: startTime,
+        endTime: endTime
+      };
+
+      console.log('Adding recommended activity to stop:', stopId, activityData);
+      
+      const newActivity = await api.addActivity(id, stopId, activityData);
+      console.log('Recommended activity added successfully:', newActivity);
+      
+      // Update the trip state
+      setTrip(prev => ({
+        ...prev,
+        stops: (prev.stops || []).map(stop =>
+          (stop.id === stopId || stop._id === stopId)
+            ? { ...stop, activities: [...(stop.activities || []), newActivity] }
+            : stop
+        )
+      }));
+
+      // Show success message
+      alert(`"${recommendedActivity.name}" has been added to your itinerary!`);
+      
+      // Optionally switch to itinerary tab to show the added activity
+      setActiveTab('itinerary');
+      
+    } catch (error) {
+      console.error('Failed to add recommended activity:', error);
+      alert('Failed to add activity to itinerary. Please try again.');
+    }
+  };
+
   const openEditStopModal = (stop) => {
     setCurrentStop(stop);
     setStopFormData({
@@ -424,6 +461,7 @@ const TripDetailPage = () => {
   };
 
   const openAddActivityModal = (stopId) => {
+    console.log('Opening add activity modal for stop:', stopId);
     setCurrentStopId(stopId);
     setShowAddActivityModal(true);
   };
@@ -566,6 +604,7 @@ const TripDetailPage = () => {
                   <Button
                     variant="secondary"
                     className="bg-white/20 border-white/30 text-white hover:bg-white/30 backdrop-blur-sm"
+                    onClick={() => setShowShareModal(true)}
                   >
                     <ShareIcon className="h-5 w-5 mr-2" />
                     Share
@@ -1004,7 +1043,13 @@ const TripDetailPage = () => {
                         <p className="text-gray-600 mb-6 leading-relaxed">{activity.description}</p>
                         
                         <div className="flex space-x-3">
-                          <Button className="flex-1">
+                          <Button 
+                            className="flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddRecommendedActivity(activity);
+                            }}
+                          >
                             Add to Itinerary
                           </Button>
                           <Button variant="secondary" className="flex-1">
@@ -1085,11 +1130,35 @@ const TripDetailPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <h2 className="text-3xl font-bold text-gray-900">Budget & Expenses</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-3xl font-bold text-gray-900">Budget & Expenses</h2>
+                  <Button
+                    onClick={() => navigate(`/trips/${id}/budget`)}
+                    className="flex items-center space-x-2"
+                  >
+                    <CurrencyDollarIcon className="h-5 w-5" />
+                    <span>Manage Full Budget</span>
+                  </Button>
+                </div>
+                
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-                  <p className="text-gray-600 text-center py-12">
-                    Budget tracking features coming soon...
-                  </p>
+                  <div className="text-center py-8">
+                    <CurrencyDollarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Comprehensive Budget Tracking
+                    </h3>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                      Track your trip expenses, manage your budget, and get insights into your spending patterns with our dedicated budget management page.
+                    </p>
+                    <Button
+                      onClick={() => navigate(`/trips/${id}/budget`)}
+                      size="lg"
+                      className="flex items-center space-x-2 mx-auto"
+                    >
+                      <CurrencyDollarIcon className="h-5 w-5" />
+                      <span>Open Budget Manager</span>
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -1119,7 +1188,7 @@ const TripDetailPage = () => {
                   variant="secondary"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => setActiveTab('budget')}
+                  onClick={() => navigate(`/trips/${id}/budget`)}
                 >
                   <CurrencyDollarIcon className="h-5 w-5 mr-3 text-green-500" />
                   Manage Budget
@@ -1128,6 +1197,7 @@ const TripDetailPage = () => {
                   variant="secondary"
                   size="sm"
                   className="w-full justify-start"
+                  onClick={() => setShowShareModal(true)}
                 >
                   <ShareIcon className="h-5 w-5 mr-3 text-blue-500" />
                   Share Trip
@@ -1361,7 +1431,7 @@ const TripDetailPage = () => {
                       variant="secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Add to itinerary logic
+                        handleAddRecommendedActivity(hotel);
                       }}
                     >
                       Add to Itinerary
@@ -1425,7 +1495,7 @@ const TripDetailPage = () => {
                       variant="secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Add to itinerary logic
+                        handleAddRecommendedActivity(activity);
                       }}
                     >
                       Add to Itinerary
@@ -1736,6 +1806,13 @@ const TripDetailPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        trip={trip}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal

@@ -62,12 +62,40 @@ exports.getActivityById = async (req, res) => {
 
 exports.createActivity = async (req, res) => {
   try {
-    const activity = new Activity(req.body);
-    await activity.save();
-    res.status(201).json(activity);
+    // Verify that the stop belongs to a trip owned by the current user
+    const userTrips = await Trip.find({ user: req.user._id }).select('_id');
+    const tripIds = userTrips.map(trip => trip._id);
+    
+    const stop = await Stop.findOne({ 
+      _id: req.body.stop, 
+      trip: { $in: tripIds } 
+    });
+    
+    if (!stop) {
+      return res.status(404).json({ message: "Stop not found or access denied" });
+    }
+
+    const activity = await Activity.create(req.body);
+    
+    // Add activity to stop's activities array
+    await Stop.findByIdAndUpdate(req.body.stop, {
+      $push: { activities: activity._id }
+    });
+
+    // Transform data to match frontend expectations
+    const transformedActivity = {
+      ...activity.toObject(),
+      id: activity._id,
+      date: activity.startTime,
+      duration: activity.endTime && activity.startTime ? 
+        Math.round((new Date(activity.endTime) - new Date(activity.startTime)) / (1000 * 60 * 60) * 10) / 10 : null,
+      category: activity.category || 'Other'
+    };
+
+    res.status(201).json(transformedActivity);
   } catch (err) {
     console.error("Error creating activity:", err);
-    res.status(400).json({ message: "Invalid activity data" });
+    res.status(400).json({ message: "Invalid activity data", error: err.message });
   }
 };
 
