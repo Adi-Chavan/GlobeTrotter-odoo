@@ -32,10 +32,17 @@ const LandingPage = () => {
 
   const loadPublicTrips = async () => {
     try {
-      const trips = await api.getPublicTrips();
-      setPublicTrips(trips);
+      const response = await fetch("http://localhost:3000/api/trips/public");
+      if (response.ok) {
+        const trips = await response.json();
+        setPublicTrips(Array.isArray(trips) ? trips : []);
+      } else {
+        console.error('Failed to load public trips:', response.status, response.statusText);
+        setPublicTrips([]);
+      }
     } catch (error) {
       console.error('Failed to load public trips:', error);
+      setPublicTrips([]);
     } finally {
       setLoading(false);
     }
