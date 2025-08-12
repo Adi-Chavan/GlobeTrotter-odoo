@@ -10,12 +10,20 @@ exports.protect = async (req, res, next) => {
     token = req.cookies.accessToken;
   }
 
+  console.log("Auth middleware - Token found:", !!token);
+  console.log("Auth middleware - Cookies:", req.cookies);
+
   if (!token) return res.status(401).json({ message: 'Not authorized' });
 
-  const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-  req.user = await User.findById(decoded.id).select('-password');
-
-  next();
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    req.user = await User.findById(decoded.id).select('-password');
+    console.log("Auth middleware - User found:", req.user?._id);
+    next();
+  } catch (error) {
+    console.error("Auth middleware - Token verification failed:", error);
+    return res.status(401).json({ message: 'Not authorized' });
+  }
 };
 
 exports.admin = (req, res, next) => {

@@ -321,11 +321,11 @@ export function AppProvider({ children }) {
           const data = await res.json();
           setUser(data.user);
           dispatch({ type: actionTypes.SET_USER, payload: data.user });
-          // Load initial data after successful auth
-          dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
-          dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
-          dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
-          dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
+          // Load trips from MongoDB instead of mock data
+          loadTrips();
+          loadActivities();
+          loadHotels();
+          loadCommunityPosts();
         }
       } catch (error) {
         console.log('No existing session found');
@@ -335,6 +335,99 @@ export function AppProvider({ children }) {
     };
     tryRefresh();
   }, []);
+
+  // Function to load trips from MongoDB
+  const loadTrips = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/trips', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        const trips = await res.json();
+        // Transform MongoDB trips to include id field for compatibility
+        const transformedTrips = trips.map(trip => ({
+          ...trip,
+          id: trip._id, // Add id field for compatibility with existing components
+          destination: trip.primaryDestination // Map primaryDestination to destination
+        }));
+        dispatch({ type: actionTypes.SET_TRIPS, payload: transformedTrips });
+      } else {
+        console.error('Failed to fetch trips');
+        // Fallback to mock data if fetch fails
+        dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
+      }
+    } catch (error) {
+      console.error('Error fetching trips:', error);
+      // Fallback to mock data if fetch fails
+      dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
+    }
+  };
+
+  // Function to load activities from MongoDB
+  const loadActivities = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/activities', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        const activities = await res.json();
+        dispatch({ type: actionTypes.SET_ACTIVITIES, payload: activities });
+      } else {
+        console.error('Failed to fetch activities');
+        dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
+    }
+  };
+
+  // Function to load hotels from MongoDB (using mock for now)
+  const loadHotels = async () => {
+    try {
+      // For now, using mock data as we don't have a hotels backend yet
+      dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
+    } catch (error) {
+      console.error('Error fetching hotels:', error);
+      dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
+    }
+  };
+
+  // Function to load community posts from MongoDB
+  const loadCommunityPosts = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/community', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Transform MongoDB posts to include id field for compatibility
+        const transformedPosts = data.posts.map(post => ({
+          ...post,
+          id: post._id, // Add id field for compatibility with existing components
+        }));
+        dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: transformedPosts });
+        console.log('Community posts loaded from MongoDB:', transformedPosts.length);
+      } else {
+        console.error('Failed to fetch community posts');
+        // Fallback to mock data if fetch fails
+        dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
+      }
+    } catch (error) {
+      console.error('Error fetching community posts:', error);
+      // Fallback to mock data if error occurs
+      dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
+    }
+  };
 
   // Auth functions
   const login = async (email, password) => {
@@ -352,10 +445,10 @@ export function AppProvider({ children }) {
       if (res.ok) {
         setUser(data.user);
         dispatch({ type: actionTypes.SET_USER, payload: data.user });
-        dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
-        dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
-        dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
-        dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
+        loadTrips(); // Load trips from MongoDB
+        loadActivities();
+        loadHotels();
+        loadCommunityPosts();
         dispatch({ type: actionTypes.CLEAR_ERROR });
         return { success: true };
       } else {
@@ -384,10 +477,10 @@ export function AppProvider({ children }) {
       if (res.ok) {
         setUser(data.user);
         dispatch({ type: actionTypes.SET_USER, payload: data.user });
-        dispatch({ type: actionTypes.SET_TRIPS, payload: mockTrips });
-        dispatch({ type: actionTypes.SET_ACTIVITIES, payload: mockActivities });
-        dispatch({ type: actionTypes.SET_HOTELS, payload: mockHotels });
-        dispatch({ type: actionTypes.SET_COMMUNITY_POSTS, payload: mockCommunityPosts });
+        loadTrips(); // Load trips from MongoDB
+        loadActivities();
+        loadHotels();
+        loadCommunityPosts();
         dispatch({ type: actionTypes.CLEAR_ERROR });
         return { success: true };
       } else {
@@ -417,37 +510,101 @@ export function AppProvider({ children }) {
 
 
   // Trip functions
+  // const createTrip = async (tripData) => {
+  //   try {
+  //     dispatch({ type: actionTypes.SET_LOADING, payload: true });
+      
+  //     // Call API to create trip
+  //     const { api } = await import('../services/api.js');
+  //     const newTrip = await api.createTrip(tripData);
+      
+  //     // Add to local state
+  //     dispatch({ type: actionTypes.ADD_TRIP, payload: newTrip });
+      
+  //     return newTrip;
+  //   } catch (error) {
+  //     dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
+  //     throw error;
+  //   } finally {
+  //     dispatch({ type: actionTypes.SET_LOADING, payload: false });
+  //   }
+  // };
+
   const createTrip = async (tripData) => {
+  try {
+    dispatch({ type: actionTypes.SET_LOADING, payload: true });
+
+    // Call backend API that stores in MongoDB
+    const res = await fetch("http://localhost:3000/api/trips", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(tripData),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || "Failed to create trip");
+    }
+
+    // This response should come from MongoDB (via backend controller)
+    const newTrip = await res.json();
+
+    // Add to local state
+    dispatch({ type: actionTypes.ADD_TRIP, payload: newTrip });
+
+    return newTrip;
+  } catch (error) {
+    dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
+    throw error;
+  } finally {
+    dispatch({ type: actionTypes.SET_LOADING, payload: false });
+  }
+};
+
+
+  const updateTrip = async (tripId, updates) => {
     try {
-      dispatch({ type: actionTypes.SET_LOADING, payload: true });
-      
-      // Call API to create trip
-      const { api } = await import('../services/api.js');
-      const newTrip = await api.createTrip(tripData);
-      
-      // Add to local state
-      dispatch({ type: actionTypes.ADD_TRIP, payload: newTrip });
-      
-      return newTrip;
+      const res = await fetch(`http://localhost:3000/api/trips/${tripId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update trip');
+      }
+
+      const updatedTrip = await res.json();
+      dispatch({ type: actionTypes.UPDATE_TRIP, payload: updatedTrip });
+      return updatedTrip;
     } catch (error) {
       dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
       throw error;
-    } finally {
-      dispatch({ type: actionTypes.SET_LOADING, payload: false });
     }
   };
 
-  const updateTrip = (tripId, updates) => {
-    const trip = state.trips.find(t => t.id === tripId);
-    if (trip) {
-      const updatedTrip = { ...trip, ...updates };
-      dispatch({ type: actionTypes.UPDATE_TRIP, payload: updatedTrip });
-      return updatedTrip;
-    }
-  };
+  const deleteTrip = async (tripId) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/trips/${tripId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-  const deleteTrip = (tripId) => {
-    dispatch({ type: actionTypes.DELETE_TRIP, payload: tripId });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to delete trip');
+      }
+
+      dispatch({ type: actionTypes.DELETE_TRIP, payload: tripId });
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
+      throw error;
+    }
   };
 
   const setCurrentTrip = (trip) => {
@@ -501,52 +658,135 @@ export function AppProvider({ children }) {
   };
 
   // Community functions
-  const createCommunityPost = (postData) => {
-    const newPost = {
-      id: Date.now(),
-      author: { name: state.user?.name || 'Anonymous' },
-      createdAt: new Date().toISOString(),
-      likes: [],
-      comments: [],
-      category: postData.category || 'general',
-      tags: postData.tags || [],
-      ...postData,
-    };
-    dispatch({ type: actionTypes.ADD_COMMUNITY_POST, payload: newPost });
-    return newPost;
-  };
+  const createCommunityPost = async (postData) => {
+    try {
+      const res = await fetch('http://localhost:3000/api/community', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData),
+      });
 
-  const addCommunityComment = (postId, content) => {
-    const post = state.communityPosts.find(p => p.id === postId);
-    if (post) {
-      const newComment = {
+      if (res.ok) {
+        const newPost = await res.json();
+        // Transform to include id field for compatibility
+        const transformedPost = {
+          ...newPost,
+          id: newPost._id,
+        };
+        dispatch({ type: actionTypes.ADD_COMMUNITY_POST, payload: transformedPost });
+        console.log('Community post created successfully:', transformedPost);
+        return transformedPost;
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create community post');
+      }
+    } catch (error) {
+      console.error('Error creating community post:', error);
+      // Fallback to mock-like behavior for development
+      const newPost = {
         id: Date.now(),
         author: { name: state.user?.name || 'Anonymous' },
-        content,
         createdAt: new Date().toISOString(),
+        likes: [],
+        comments: [],
+        category: postData.category || 'general',
+        tags: postData.tags || [],
+        ...postData,
       };
-      const updatedPost = {
-        ...post,
-        comments: [...(post.comments || []), newComment]
-      };
-      dispatch({ type: actionTypes.UPDATE_COMMUNITY_POST, payload: updatedPost });
+      dispatch({ type: actionTypes.ADD_COMMUNITY_POST, payload: newPost });
+      return newPost;
     }
   };
 
-  const togglePostLike = (postId) => {
-    const post = state.communityPosts.find(p => p.id === postId);
-    if (post && state.user) {
-      const hasLiked = post.likes?.some(like => like.userId === state.user.id);
-      let updatedLikes;
-      
-      if (hasLiked) {
-        updatedLikes = post.likes.filter(like => like.userId !== state.user.id);
+  const addCommunityComment = async (postId, content) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/community/posts/${postId}/comments`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Find the post and update it with the new comment
+        const post = state.communityPosts.find(p => p.id === postId);
+        if (post) {
+          const updatedPost = {
+            ...post,
+            comments: [...(post.comments || []), data.comment],
+            commentCount: data.commentCount
+          };
+          dispatch({ type: actionTypes.UPDATE_COMMUNITY_POST, payload: updatedPost });
+        }
+        console.log('Comment added successfully');
       } else {
-        updatedLikes = [...(post.likes || []), { userId: state.user.id, userName: state.user.name }];
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to add comment');
       }
-      
-      const updatedPost = { ...post, likes: updatedLikes };
-      dispatch({ type: actionTypes.UPDATE_COMMUNITY_POST, payload: updatedPost });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      // Fallback to mock-like behavior
+      const post = state.communityPosts.find(p => p.id === postId);
+      if (post) {
+        const newComment = {
+          id: Date.now(),
+          author: { name: state.user?.name || 'Anonymous' },
+          content,
+          createdAt: new Date().toISOString(),
+        };
+        const updatedPost = {
+          ...post,
+          comments: [...(post.comments || []), newComment]
+        };
+        dispatch({ type: actionTypes.UPDATE_COMMUNITY_POST, payload: updatedPost });
+      }
+    }
+  };
+
+  const togglePostLike = async (postId) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/community/posts/${postId}/like`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Find the post and update it with the new likes
+        const post = state.communityPosts.find(p => p.id === postId);
+        if (post) {
+          const updatedPost = {
+            ...post,
+            likes: data.likes,
+            likeCount: data.likeCount
+          };
+          dispatch({ type: actionTypes.UPDATE_COMMUNITY_POST, payload: updatedPost });
+        }
+        console.log('Like toggled successfully');
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to toggle like');
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Fallback to mock-like behavior
+      const post = state.communityPosts.find(p => p.id === postId);
+      if (post && state.user) {
+        const hasLiked = post.likes?.some(like => like.userId === state.user.id);
+        let updatedLikes;
+        
+        if (hasLiked) {
+          updatedLikes = post.likes.filter(like => like.userId !== state.user.id);
+        } else {
+          updatedLikes = [...(post.likes || []), { userId: state.user.id, userName: state.user.name }];
+        }
+        
+        const updatedPost = { ...post, likes: updatedLikes };
+        dispatch({ type: actionTypes.UPDATE_COMMUNITY_POST, payload: updatedPost });
+      }
     }
   };
 
@@ -588,6 +828,9 @@ export function AppProvider({ children }) {
     signup,
     logout,
     createTrip,
+    loadTrips,
+    loadActivities,
+    loadHotels,
     updateTrip,
     deleteTrip,
     setCurrentTrip,

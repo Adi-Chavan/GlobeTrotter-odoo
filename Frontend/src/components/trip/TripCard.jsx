@@ -20,7 +20,7 @@ const TripCard = ({ trip, showOwner = false }) => {
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300"
     >
-      <Link to={`/trips/${trip.id}`}>
+      <Link to={`/trips/${trip._id || trip.id}`}>
         {/* Cover Image */}
         <div className="relative h-48 overflow-hidden">
           <img 

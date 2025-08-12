@@ -89,6 +89,8 @@ const TripDetailPage = () => {
   const [showTripStats, setShowTripStats] = useState(true);
 
   useEffect(() => {
+    console.log('TripDetailPage mounted, id from useParams:', id);
+    console.log('Current URL:', window.location.href);
     loadTrip();
   }, [id]);
 
@@ -103,8 +105,27 @@ const TripDetailPage = () => {
     try {
       setLoading(true);
       console.log('Loading trip with ID:', id);
-      const tripData = await api.getTripById(id);
-      console.log('Trip loaded:', tripData);
+      
+      if (!id) {
+        throw new Error('Trip ID is missing from URL parameters');
+      }
+      
+      // Fetch trip from MongoDB backend
+      const res = await fetch(`http://localhost:3000/api/trips/${id}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Failed to fetch trip: ${res.status}`);
+      }
+
+      const tripData = await res.json();
+      console.log('Trip loaded from MongoDB:', tripData);
       
       // Ensure stops array exists
       if (!tripData.stops) {
@@ -164,12 +185,62 @@ const TripDetailPage = () => {
 
     try {
       console.log('Adding stop:', stopFormData);
+      
+      // First, create or find the city
+      const cityRes = await fetch('http://localhost:3000/api/cities', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: stopFormData.cityName.trim(),
+          country: stopFormData.country.trim()
+        }),
+      });
+
+      let city;
+      if (cityRes.ok) {
+        city = await cityRes.json();
+      } else {
+        // City might already exist, try to find it
+        const searchRes = await fetch(`http://localhost:3000/api/cities?search=${encodeURIComponent(stopFormData.cityName)}&country=${encodeURIComponent(stopFormData.country)}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (searchRes.ok) {
+          const cities = await searchRes.json();
+          city = cities.find(c => c.name.toLowerCase() === stopFormData.cityName.toLowerCase() && 
+                                  c.country.toLowerCase() === stopFormData.country.toLowerCase());
+        }
+        
+        if (!city) {
+          throw new Error('Could not create or find city');
+        }
+      }
+
+      // Now create the stop
       const stopData = {
-        ...stopFormData,
-        estimatedCost: parseFloat(stopFormData.estimatedCost) || 0
+        trip: id,
+        city: city._id,
+        arrivalDate: stopFormData.startDate,
+        departureDate: stopFormData.endDate,
+        activities: []
       };
-      const newStop = await api.addStop(id, stopData);
+
+      const res = await fetch('http://localhost:3000/api/stops', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stopData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create stop');
+      }
+
+      const newStop = await res.json();
       console.log('Stop added successfully:', newStop);
+      
       setTrip(prev => ({
         ...prev,
         stops: [...(prev.stops || []), newStop]
@@ -219,12 +290,38 @@ const TripDetailPage = () => {
   const handleAddActivity = async () => {
     try {
       console.log('Adding activity:', currentStopId, activityFormData);
-      const newActivity = await api.addActivity(id, currentStopId, activityFormData);
+      
+      const activityData = {
+        stop: currentStopId,
+        name: activityFormData.name,
+        description: activityFormData.description || '',
+        startTime: activityFormData.date && activityFormData.time ? 
+          new Date(`${activityFormData.date}T${activityFormData.time}`) : null,
+        endTime: activityFormData.date && activityFormData.time && activityFormData.duration ?
+          new Date(new Date(`${activityFormData.date}T${activityFormData.time}`).getTime() + 
+                  parseInt(activityFormData.duration) * 60000) : null,
+        cost: parseFloat(activityFormData.cost) || 0
+      };
+
+      const res = await fetch('http://localhost:3000/api/activities', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activityData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create activity');
+      }
+
+      const newActivity = await res.json();
       console.log('Activity added successfully:', newActivity);
+      
       setTrip(prev => ({
         ...prev,
         stops: (prev.stops || []).map(stop =>
-          stop.id === currentStopId
+          stop._id === currentStopId
             ? { ...stop, activities: [...(stop.activities || []), newActivity] }
             : stop
         )

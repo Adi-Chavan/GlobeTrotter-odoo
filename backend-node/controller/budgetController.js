@@ -1,10 +1,15 @@
 const Budget = require("../models/Budget");
+const Trip = require("../models/Trip");
 
 exports.getBudgets = async (req, res) => {
   try {
-    const budgets = await Budget.find()
-      .populate("trip", "name destination") // populate trip name & destination
-      .populate("activity", "name description") // populate activity details if linked
+    // Get user's trips first
+    const userTrips = await Trip.find({ user: req.user._id }).select('_id');
+    const tripIds = userTrips.map(trip => trip._id);
+
+    const budgets = await Budget.find({ trip: { $in: tripIds } })
+      .populate("trip", "name primaryDestination") 
+      .populate("activity", "name description") 
       .sort({ createdAt: -1 });
 
     res.json(budgets);
@@ -16,8 +21,15 @@ exports.getBudgets = async (req, res) => {
 
 exports.getBudgetById = async (req, res) => {
   try {
-    const budget = await Budget.findById(req.params.id)
-      .populate("trip", "name destination")
+    // Get user's trips first
+    const userTrips = await Trip.find({ user: req.user._id }).select('_id');
+    const tripIds = userTrips.map(trip => trip._id);
+
+    const budget = await Budget.findOne({ 
+      _id: req.params.id, 
+      trip: { $in: tripIds } 
+    })
+      .populate("trip", "name primaryDestination")
       .populate("activity", "name description");
 
     if (!budget) return res.status(404).json({ message: "Budget not found" });

@@ -19,10 +19,17 @@ const LandingPage = () => {
 
   const loadPublicTrips = async () => {
     try {
-      const trips = await api.getPublicTrips();
-      setPublicTrips(trips);
+      const response = await fetch("http://localhost:3000/api/trips/public");
+      if (response.ok) {
+        const trips = await response.json();
+        setPublicTrips(Array.isArray(trips) ? trips : []);
+      } else {
+        console.error('Failed to load public trips:', response.status, response.statusText);
+        setPublicTrips([]);
+      }
     } catch (error) {
       console.error('Failed to load public trips:', error);
+      setPublicTrips([]);
     } finally {
       setLoading(false);
     }
@@ -190,23 +197,23 @@ const LandingPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {publicTrips.map((trip, index) => (
-                <motion.div
-                  key={trip.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <TripCard trip={trip} showOwner />
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {!loading && publicTrips.length === 0 && (
-            <div className="text-center text-gray-500 py-12">
-              <p>No public trips available at the moment.</p>
+              {Array.isArray(publicTrips) && publicTrips.length > 0 ? (
+                publicTrips.map((trip, index) => (
+                  <motion.div
+                    key={trip.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                  >
+                    <TripCard trip={trip} showOwner />
+                  </motion.div>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-500 py-12">
+                  <p>No public trips available at the moment.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

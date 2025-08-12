@@ -127,22 +127,37 @@ const CreateTripPage = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const newTrip = await createTrip(formData);
-      navigate(`/trips/${newTrip.id}`);
-    } catch (error) {
-      console.error('Failed to create trip:', error);
-    }
-  };
+  const errors = validateForm();
+  if (Object.keys(errors).length > 0) {
+    setFormErrors(errors);
+    return;
+  }
+
+  try {
+    // Format payload for backend
+    const payload = {
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      destination: formData.destination.trim(),
+      startDate: new Date(formData.startDate),
+      endDate: new Date(formData.endDate),
+      coverImage: formData.coverImage.trim() || null,
+      isPublic: formData.isPublic
+    };
+
+    const newTrip = await createTrip(payload);
+
+    // navigate using Mongo's _id
+    navigate(`/trips/${newTrip._id}`);
+    
+  } catch (error) {
+    console.error('Failed to create trip:', error);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gray-50">

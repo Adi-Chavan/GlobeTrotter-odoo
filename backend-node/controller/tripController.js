@@ -4,33 +4,41 @@ const Budget = require("../models/Budget");
 
 exports.createTrip = async (req, res) => {
   try {
-    const { name, description, startDate, endDate, stops, budgets } = req.body;
+    console.log("Creating trip - Request body:", req.body);
+    console.log("Creating trip - User ID:", req.user?._id);
+    
+    const { name, description, destination, startDate, endDate, stops, budgets, coverImage, isPublic } = req.body;
 
     const trip = await Trip.create({
       user: req.user._id, 
       name,
       description,
-      primaryDestination: stops && stops.length > 0 ? stops[0].destination : null,
+      primaryDestination: destination || (stops && stops.length > 0 ? stops[0].destination : null),
       startDate,
       endDate,
-      stops,   
-      budgets, 
+      stops: stops || [],   
+      budgets: budgets || [],
+      coverImage,
+      isPublic: isPublic || false
     });
 
+    console.log("Trip created successfully:", trip);
     res.status(201).json(trip);
   } catch (err) {
     console.error("Error creating trip:", err);
-    res.status(500).json({ error: "Failed to create trip" });
+    res.status(500).json({ error: "Failed to create trip", details: err.message });
   }
 };
 
 
 exports.getTrips = async (req, res) => {
   try {
+    console.log("Fetching trips for user:", req.user._id);
     const trips = await Trip.find({ user: req.user._id })
       .populate("stops")
       .populate("budgets");
 
+    console.log("Found trips:", trips.length);
     res.json(trips);
   } catch (err) {
     console.error("Error fetching trips:", err);
@@ -40,11 +48,17 @@ exports.getTrips = async (req, res) => {
 
 exports.getTripById = async (req, res) => {
   try {
+    console.log("Fetching trip by ID:", req.params.id, "for user:", req.user._id);
     const trip = await Trip.findOne({ _id: req.params.id, user: req.user._id })
       .populate("stops")
       .populate("budgets");
 
-    if (!trip) return res.status(404).json({ error: "Trip not found" });
+    if (!trip) {
+      console.log("Trip not found");
+      return res.status(404).json({ error: "Trip not found" });
+    }
+    
+    console.log("Trip found successfully:", trip);
     res.json(trip);
   } catch (err) {
     console.error("Error fetching trip:", err);
@@ -81,5 +95,18 @@ exports.deleteTrip = async (req, res) => {
   } catch (err) {
     console.error("Error deleting trip:", err);
     res.status(500).json({ error: "Failed to delete trip" });
+  }
+};
+
+exports.getPublicTrips = async (req, res) => {
+  try {
+    const trips = await Trip.find({ isPublic: true })
+      .populate("stops")
+      .populate("budgets");
+
+    res.json(trips);
+  } catch (err) {
+    console.error("Error fetching public trips:", err);
+    res.status(500).json({ error: "Failed to fetch public trips" });
   }
 };
