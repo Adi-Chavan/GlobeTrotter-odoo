@@ -6,7 +6,8 @@ import { useApp } from '../../context/AppContext';
 import TripCard from '../../components/trip/TripCard';
 import Button from '../../components/common/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import Navbar from '../../components/common/Navbar';
+import TopBar from '../../components/common/TopBar';
+import Sidebar from '../../components/common/Sidebar';
 
 const Dashboard = () => {
   const { user, trips, loading } = useApp();
@@ -96,22 +97,24 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <TopBar />
+      <Sidebar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.name}! ✈️
-          </h1>
-          <p className="text-gray-600">
-            Ready to plan your next adventure? Here's what's happening with your trips.
-          </p>
-        </motion.div>
+      <div className="ml-16 pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Welcome Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Welcome back, {user?.name}! ✈️
+            </h1>
+            <p className="text-gray-600">
+              Ready to plan your next adventure? Here's what's happening with your trips.
+            </p>
+          </motion.div>
 
         {/* Stats Cards */}
         <motion.div
@@ -233,6 +236,7 @@ const Dashboard = () => {
             </div>
           </div>
         </motion.div>
+        </div>
       </div>
     </div>
   );

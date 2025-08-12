@@ -16,7 +16,8 @@ import {
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useApp } from '../context/AppContext';
 import Button from '../components/common/Button';
-import Navbar from '../components/common/Navbar';
+import TopBar from '../components/common/TopBar';
+import Sidebar from '../components/common/Sidebar';
 import PostCard from '../components/common/PostCard';
 
 const CommunityPage = () => {
@@ -100,9 +101,11 @@ const CommunityPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <TopBar />
+      <Sidebar />
       
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="ml-16 pt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -359,6 +362,7 @@ const CommunityPage = () => {
           </motion.div>
         </div>
       )}
+      </div>
     </div>
   );
 };

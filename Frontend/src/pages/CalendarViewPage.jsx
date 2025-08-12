@@ -14,7 +14,8 @@ import {
 import { useApp } from '../context/AppContext';
 import { Link } from 'react-router-dom';
 import Button from '../components/common/Button';
-import Navbar from '../components/common/Navbar';
+import TopBar from '../components/common/TopBar';
+import Sidebar from '../components/common/Sidebar';
 
 const CalendarViewPage = () => {
   const { trips } = useApp();
@@ -117,9 +118,11 @@ const CalendarViewPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <TopBar />
+      <Sidebar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="ml-16 pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -425,6 +428,7 @@ const CalendarViewPage = () => {
               </div>
             </motion.div>
           </div>
+        </div>
         </div>
       </div>
     </div>

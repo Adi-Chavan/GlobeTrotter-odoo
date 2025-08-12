@@ -15,7 +15,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import Button from './Button';
 
-const Navbar = () => {
+const Navbar = ({ isVisible = true }) => {
   const { user, isAuthenticated, logout } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,15 +32,10 @@ const Navbar = () => {
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: MapIcon },
-    { name: 'My Trips', href: '/trips', icon: MapIcon },
-    { name: 'Create Trip', href: '/trips/new', icon: PlusIcon },
-    { name: 'Activities', href: '/activities', icon: MagnifyingGlassIcon },
-    { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
-    { name: 'Community', href: '/community', icon: UsersIcon },
   ];
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <nav className={`px-6 sticky top-0 z-40 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -49,10 +44,12 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
               className="flex items-center space-x-2"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">GT</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">GlobeTrotter</span>
+              <img 
+                src="/vite.svg" 
+                alt="GlobeTrotter Logo" 
+                className="w-8 h-8"
+              />
+              <span className="text-3xl font-bold text-gray-800">GlobeTrotter</span>
             </motion.div>
           </Link>
 
@@ -66,13 +63,13 @@ const Navbar = () => {
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`flex items-center space-x-1 text-sm font-medium transition-colors ${
+                      className={`flex items-center space-x-2 text-lg font-medium transition-colors ${
                         isActive(item.href) 
-                          ? 'text-blue-600' 
-                          : 'text-gray-700 hover:text-blue-600'
+                          ? 'text-gray-800' 
+                          : 'text-gray-700 hover:text-gray-900'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-5 w-5" />
                       <span>{item.name}</span>
                     </Link>
                   );
@@ -82,13 +79,13 @@ const Navbar = () => {
                 {user?.email === 'admin@globetrotter.com' && (
                   <Link
                     to="/admin"
-                    className={`flex items-center space-x-1 text-sm font-medium transition-colors ${
+                    className={`flex items-center space-x-2 text-lg font-medium transition-colors ${
                       isActive('/admin') 
-                        ? 'text-blue-600' 
-                        : 'text-gray-700 hover:text-blue-600'
+                        ? 'text-gray-800' 
+                        : 'text-gray-200 hover:text-gray-800'
                     }`}
                   >
-                    <Cog6ToothIcon className="h-4 w-4" />
+                    <Cog6ToothIcon className="h-5 w-5" />
                     <span>Admin</span>
                   </Link>
                 )}
@@ -97,7 +94,7 @@ const Navbar = () => {
                 <div className="relative">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                    className="flex items-center space-x-2 text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
                   >
                     {user?.avatar ? (
                       <img 
@@ -117,18 +114,18 @@ const Navbar = () => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2"
+                        className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-600 py-2"
                       >
                         <Link
                           to="/profile"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="block px-4 py-2 text-base text-gray-200 hover:bg-gray-700 transition-colors"
                         >
                           Profile Settings
                         </Link>
                         <button
                           onClick={handleLogout}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="block w-full text-left px-4 py-2 text-base text-gray-200 hover:bg-gray-700 transition-colors"
                         >
                           Sign Out
                         </button>
@@ -138,10 +135,10 @@ const Navbar = () => {
                 </div>
               </>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-6">
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                  className="text-lg font-medium text-gray-700 hover:text-gray-900 transition-colors"
                 >
                   Login
                 </Link>
@@ -156,7 +153,7 @@ const Navbar = () => {
           <div className="md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-md text-gray-700 hover:text-blue-600 transition-colors"
+              className="p-2 rounded-md text-gray-200 hover:text-gray-800 transition-colors"
             >
               {mobileMenuOpen ? (
                 <XMarkIcon className="h-6 w-6" />
@@ -174,7 +171,7 @@ const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-gray-200 py-4"
+              className="md:hidden border-t border-gray-600 py-4 bg-black/80 backdrop-blur-sm"
             >
               {isAuthenticated ? (
                 <div className="space-y-4">
@@ -185,9 +182,9 @@ const Navbar = () => {
                         key={item.name}
                         to={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                        className="flex items-center space-x-3 text-lg font-medium text-gray-200 hover:text-gray-800 transition-colors"
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-5 w-5" />
                         <span>{item.name}</span>
                       </Link>
                     );
@@ -197,9 +194,9 @@ const Navbar = () => {
                     <Link
                       to="/admin"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                      className="flex items-center space-x-3 text-lg font-medium text-gray-200 hover:text-gray-800 transition-colors"
                     >
-                      <Cog6ToothIcon className="h-4 w-4" />
+                      <Cog6ToothIcon className="h-5 w-5" />
                       <span>Admin</span>
                     </Link>
                   )}
@@ -207,9 +204,9 @@ const Navbar = () => {
                   <Link
                     to="/profile"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                    className="flex items-center space-x-3 text-lg font-medium text-gray-200 hover:text-gray-800 transition-colors"
                   >
-                    <UserCircleIcon className="h-4 w-4" />
+                    <UserCircleIcon className="h-5 w-5" />
                     <span>Profile</span>
                   </Link>
                   <button
@@ -217,7 +214,7 @@ const Navbar = () => {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                    className="flex items-center space-x-3 text-lg font-medium text-gray-200 hover:text-gray-800 transition-colors"
                   >
                     <span>Sign Out</span>
                   </button>
@@ -227,7 +224,7 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                    className="block text-lg font-medium text-gray-800 hover:text-gray-800 transition-colors"
                   >
                     Login
                   </Link>

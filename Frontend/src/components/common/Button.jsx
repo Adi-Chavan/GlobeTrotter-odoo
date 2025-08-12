@@ -15,7 +15,7 @@ const Button = ({
   const baseClasses = 'font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
+    primary: 'bg-primary-500 hover:bg-primary-700 text-white focus:ring-primary-500',
     secondary: 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 focus:ring-primary-500',
     accent: 'bg-accent-500 hover:bg-accent-600 text-white focus:ring-accent-500',
     ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-primary-500',

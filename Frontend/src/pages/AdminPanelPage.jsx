@@ -16,7 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useApp } from '../context/AppContext';
 import Button from '../components/common/Button';
-import Navbar from '../components/common/Navbar';
+import TopBar from '../components/common/TopBar';
 
 const AdminPanelPage = () => {
   const { trips, communityPosts, hotels, user } = useApp();
@@ -167,9 +167,9 @@ const AdminPanelPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <TopBar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
