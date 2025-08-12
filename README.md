@@ -10,11 +10,13 @@ alize their journeys through structured itineraries, make cost-effective
 decisions, and share their travel plans within a community—making 
 travel planning as exciting as the trip itself
 
+Video Link :- https://youtu.be/TKmdfJe0dtg
+
 TECH STACK:
 
 1.Frontend: React + Vite  
-2.Backend: Django (python)  
-3.Database: PostgreSql (Relational)  
+2.Backend: Node Express  
+3.Database: MongoDB  
 
 TEAM:
 
